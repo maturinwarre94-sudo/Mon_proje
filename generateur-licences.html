@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GSW — Espace superadministrateur</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;margin:0;padding:14px;color:#e6ecff;min-height:100vh;
+  background:radial-gradient(900px 500px at 10% -10%,rgba(99,102,241,.28),transparent 60%),radial-gradient(800px 500px at 100% 0%,rgba(6,182,212,.2),transparent 55%),radial-gradient(700px 500px at 50% 110%,rgba(168,85,247,.18),transparent 60%),linear-gradient(180deg,#050816,#0a1124);background-attachment:fixed}
+h1{font-size:20px;text-align:center;margin:6px 0 14px;font-weight:800;background:linear-gradient(90deg,#7dd3fc,#a5b4fc,#e9d5ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.card{background:rgba(16,24,48,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(125,140,255,.2);border-radius:18px;padding:16px;margin:0 auto 14px;box-shadow:0 12px 40px rgba(0,0,0,.45);max-width:720px}
+h2{font-size:15px;margin:0 0 10px;font-weight:800;background:linear-gradient(90deg,#a5b4fc,#67e8f9);-webkit-background-clip:text;background-clip:text;color:transparent}
+label{display:block;font-size:12px;margin:10px 0 4px;color:#9aa8d0}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid rgba(125,140,255,.25);border-radius:12px;font-size:14px;background:#0f1830;color:#e6ecff;transition:border-color .2s,box-shadow .2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#6366f1;box-shadow:0 0 0 4px rgba(99,102,241,.2)}
+textarea{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
+button{background:linear-gradient(135deg,#4f46e5,#2563eb 55%,#06b6d4);color:#fff;border:0;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;margin:10px 8px 0 0;cursor:pointer;box-shadow:0 6px 18px rgba(79,70,229,.38);transition:transform .18s,filter .2s}
+button:hover{transform:translateY(-1.5px);filter:brightness(1.1)}button:active{transform:scale(.96)}
+button.g{background:linear-gradient(135deg,#059669,#10b981 60%,#34d399);box-shadow:0 6px 18px rgba(16,185,129,.32)}
+button.o{background:linear-gradient(135deg,#f59e0b,#fb923c);box-shadow:0 6px 18px rgba(245,158,11,.32)}
+button.s{background:linear-gradient(135deg,#475569,#64748b);box-shadow:0 4px 14px rgba(71,85,105,.28)}
+.warn{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.4);color:#fde68a;padding:10px;border-radius:12px;font-size:12px;margin:10px 0}
+.ok{background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.4);color:#a7f3d0;padding:10px;border-radius:12px;font-size:12px;margin:10px 0}
+.info{background:rgba(6,182,212,.14);border:1px solid rgba(6,182,212,.4);color:#a5f3fc;padding:10px;border-radius:12px;font-size:12px;margin:10px 0;word-break:break-word}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.row{grid-template-columns:1fr}}
+.small{font-size:11px;color:#9aa8d0}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#6366f1,#06b6d4);border-radius:8px}
+</style></head><body>
+<h1>🔑 GSW — Espace superadministrateur</h1>
+<div class="card">
+  <div class="warn"><strong>Réservé au superadministrateur.</strong> Ce fichier garde dans votre navigateur la <strong>clé privée</strong> qui signe les licences. Ne l’envoyez à personne et ne le mettez pas sur Internet.</div>
+  <div id="secure" class="small"></div>
+</div>
+
+<div class="card">
+  <h2>1. Vos clés (une seule fois)</h2>
+  <button onclick="genKeys()">🔐 Créer mes clés</button>
+  <button class="o" onclick="downloadPriv()">💾 Sauvegarder la clé privée</button>
+  <button class="o" onclick="document.getElementById('privFile').click()">📂 Charger une clé privée</button>
+  <input type="file" id="privFile" style="display:none" accept=".json" onchange="loadPriv(this)">
+  <div id="keyState" class="small" style="margin-top:8px"></div>
+  <label>Clé privée sous forme de texte (pour la copier ou la coller)</label>
+  <textarea id="privTxt" rows="3" placeholder="Collez ici une clé privée, ou appuyez sur « Afficher »"></textarea>
+  <button class="s" onclick="showPriv()">👁 Afficher la clé</button>
+  <button class="o" onclick="loadPrivText()">📥 Charger depuis le texte</button>
+  <button onclick="cp('privTxt')">📋 Copier</button>
+</div>
+
+<div class="card">
+  <h2>2. Préparer l’application</h2>
+  <p class="small"><strong>À faire dans Chrome</strong> (pas dans l’application) : choisissez GSW22.html. L’outil y insère la clé publique et crée « GSW_avec_licence.html », le fichier à transformer en APK client.</p>
+  <input type="file" id="appFile" accept=".html">
+  <button class="g" onclick="patchApp()">⚙️ Préparer l’application</button>
+  <div id="patchMsg"></div>
+</div>
+
+<div class="card">
+  <h2>3. Mes tarifs et moyens de paiement</h2>
+  <p class="small">Ces informations sont intégrées (signées) dans chaque paquet d’activation et affichées au client.</p>
+  <div class="row"><div><label>Essai gratuit (jours, 0 = aucun)</label><input id="c_trial" type="number" value="30"></div>
+  <div><label>Validité du paquet d’activation (jours)</label><input id="c_valid" type="number" value="15"></div></div>
+  <div class="row"><div><label>Prix 1 mois</label><input id="c_p_monthly" type="number" value="2000"></div>
+  <div><label>Prix 6 mois</label><input id="c_p_semi" type="number" value="11000"></div></div>
+  <div class="row"><div><label>Prix 12 mois</label><input id="c_p_yearly" type="number" value="20000"></div>
+  <div><label>Devise</label><input id="c_cur" value="FCFA"></div></div>
+  <div class="row"><div><label>Moov Money — numéro</label><input id="c_moov_n"></div><div><label>Moov Money — nom</label><input id="c_moov_h"></div></div>
+  <div class="row"><div><label>Orange Money — numéro</label><input id="c_orange_n"></div><div><label>Orange Money — nom</label><input id="c_orange_h"></div></div>
+  <div class="row"><div><label>Wave — numéro</label><input id="c_wave_n"></div><div><label>Wave — nom</label><input id="c_wave_h"></div></div>
+  <div class="row"><div><label>Banque</label><input id="c_bank"></div><div><label>Titulaire du compte</label><input id="c_bank_h"></div></div>
+  <label>IBAN / numéro de compte</label><input id="c_iban">
+  <button class="g" onclick="saveCfg()">💾 Enregistrer</button>
+</div>
+
+<div class="card">
+  <h2>4. Demande d’activation d’un client</h2>
+  <label>Collez le code reçu du client (commence par GSWREQ.)</label>
+  <textarea id="reqIn" rows="3"></textarea>
+  <button onclick="readReq()">🔍 Lire la demande</button>
+  <div id="reqView"></div>
+  <div id="reqForm" style="display:none">
+    <div class="row"><div><label>Code d’activation</label><input id="a_code"></div><div><label>Mot de passe d’activation</label><input id="a_pwd"></div></div>
+    <div class="row"><div><label>Identifiant de l’administrateur</label><input id="a_user"></div><div><label>Nom de l’administrateur</label><input id="a_name"></div></div>
+    <div class="row"><div><label>Mot de passe de l’administrateur</label><input id="a_apwd"></div><div><label>Identifiant du client (tenant)</label><input id="a_tenant"></div></div>
+    <button onclick="regen()" class="s">🎲 Générer de nouveaux codes</button>
+    <button class="g" onclick="makePackage()">✅ Créer le paquet d’activation</button>
+    <label>Paquet à envoyer au client</label>
+    <textarea id="pkgOut" rows="5" readonly onclick="this.select()"></textarea>
+    <button onclick="cp('pkgOut')">📋 Copier le paquet</button>
+    <label>Message à envoyer séparément (code, mots de passe)</label>
+    <textarea id="msgOut" rows="6" readonly onclick="this.select()"></textarea>
+    <button onclick="cp('msgOut')">📋 Copier le message</button>
+    <p class="small">Envoyez le paquet et le message <strong>par deux messages distincts</strong>. Le compte administrateur est créé dans l’application du client quand il valide.</p>
+  </div>
+</div>
+
+<div class="card">
+  <h2>5. Paiement d’un client</h2>
+  <label>Collez la preuve de paiement (commence par GSWPAY.)</label>
+  <textarea id="payIn" rows="3"></textarea>
+  <button onclick="readPay()">🔍 Lire le paiement</button>
+  <div id="payView"></div>
+  <div id="payForm" style="display:none">
+    <p class="small">Vérifiez d’abord, sur votre téléphone ou votre banque, que l’argent est bien reçu avec cette référence.</p>
+    <button class="g" onclick="approvePay()">✅ Paiement reçu — créer le jeton</button>
+    <label>Jeton d’abonnement à envoyer</label>
+    <textarea id="payTok" rows="5" readonly onclick="this.select()"></textarea>
+    <button onclick="cp('payTok')">📋 Copier le jeton</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>6. Jeton manuel (cas particulier)</h2>
+  <label>Identifiant de l’appareil</label><input id="dev">
+  <label>Identifiant du client</label><input id="tenant">
+  <div class="row"><div><label>Formule</label><select id="plan"><option value="trial">Essai</option><option value="monthly">1 mois</option><option value="semi">6 mois</option><option value="yearly">12 mois</option></select></div>
+  <div><label>Durée (jours)</label><input id="days" type="number" value="30"></div></div>
+  <button class="g" onclick="makeToken()">✅ Créer le jeton</button>
+  <textarea id="tokenOut" rows="4" readonly onclick="this.select()"></textarea>
+  <button onclick="cp('tokenOut')">📋 Copier</button>
+</div>
+
+<script>
+// ─── CX : cryptographie de secours (JavaScript pur) ───
+// Utilisée automatiquement quand crypto.subtle n'est pas disponible (WebView / contexte non sécurisé).
+const CX = (() => {
+  const K = new Int32Array([
+    0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+  const W = new Int32Array(64);
+  function compress(st, blk, off) {
+    for(let i = 0; i < 16; i++) W[i] = (blk[off + 4*i] << 24) | (blk[off + 4*i + 1] << 16) | (blk[off + 4*i + 2] << 8) | blk[off + 4*i + 3];
+    for(let i = 16; i < 64; i++) {
+      const a = W[i-15], b = W[i-2];
+      const s0 = ((a >>> 7) | (a << 25)) ^ ((a >>> 18) | (a << 14)) ^ (a >>> 3);
+      const s1 = ((b >>> 17) | (b << 15)) ^ ((b >>> 19) | (b << 13)) ^ (b >>> 10);
+      W[i] = (W[i-16] + s0 + W[i-7] + s1) | 0;
+    }
+    let a = st[0], b = st[1], c = st[2], d = st[3], e = st[4], f = st[5], g = st[6], h = st[7];
+    for(let i = 0; i < 64; i++) {
+      const S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+      const ch = (e & f) ^ (~e & g);
+      const t1 = (h + S1 + ch + K[i] + W[i]) | 0;
+      const S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+      const mj = (a & b) ^ (a & c) ^ (b & c);
+      const t2 = (S0 + mj) | 0;
+      h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+    }
+    st[0] = (st[0] + a) | 0; st[1] = (st[1] + b) | 0; st[2] = (st[2] + c) | 0; st[3] = (st[3] + d) | 0;
+    st[4] = (st[4] + e) | 0; st[5] = (st[5] + f) | 0; st[6] = (st[6] + g) | 0; st[7] = (st[7] + h) | 0;
+  }
+  const IV = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  function sha256(data) {
+    const n = data.length, total = ((n + 9 + 63) >> 6) << 6;
+    const buf = new Uint8Array(total); buf.set(data); buf[n] = 0x80;
+    const bits = n * 8; buf[total-4] = (bits >>> 24) & 255; buf[total-3] = (bits >>> 16) & 255; buf[total-2] = (bits >>> 8) & 255; buf[total-1] = bits & 255;
+    buf[total-8] = Math.floor(n / 0x20000000) & 255;
+    const st = Int32Array.from(IV);
+    for(let o = 0; o < total; o += 64) compress(st, buf, o);
+    const out = new Uint8Array(32);
+    for(let i = 0; i < 8; i++) { out[4*i] = st[i] >>> 24; out[4*i+1] = (st[i] >>> 16) & 255; out[4*i+2] = (st[i] >>> 8) & 255; out[4*i+3] = st[i] & 255; }
+    return out;
+  }
+  function pbkdf2Sync(pass, salt, iter, len) {
+    // HMAC-SHA256 avec états ipad/opad précalculés
+    let key = pass; if(key.length > 64) key = sha256(key);
+    const ip = new Uint8Array(64), op = new Uint8Array(64);
+    for(let i = 0; i < 64; i++) { const kb = i < key.length ? key[i] : 0; ip[i] = kb ^ 0x36; op[i] = kb ^ 0x5c; }
+    const ist = Int32Array.from(IV), ost = Int32Array.from(IV);
+    compress(ist, ip, 0); compress(ost, op, 0);
+    const blocks = Math.ceil(len / 32), out = new Uint8Array(blocks * 32);
+    const tmp = new Uint8Array(64), st = new Int32Array(8);
+    const hmacOnce = (msg32) => {
+      // msg32 : Uint8Array(32) ; renvoie les 8 mots de l'état externe
+      for(let i = 0; i < 8; i++) st[i] = ist[i];
+      tmp.fill(0); tmp.set(msg32); tmp[32] = 0x80; const bits = (64 + 32) * 8; tmp[62] = (bits >>> 8) & 255; tmp[63] = bits & 255;
+      compress(st, tmp, 0);
+      const inner = new Uint8Array(32);
+      for(let i = 0; i < 8; i++) { inner[4*i] = st[i] >>> 24; inner[4*i+1] = (st[i] >>> 16) & 255; inner[4*i+2] = (st[i] >>> 8) & 255; inner[4*i+3] = st[i] & 255; }
+      for(let i = 0; i < 8; i++) st[i] = ost[i];
+      tmp.fill(0); tmp.set(inner); tmp[32] = 0x80; tmp[62] = (bits >>> 8) & 255; tmp[63] = bits & 255;
+      compress(st, tmp, 0);
+    };
+    for(let b = 1; b <= blocks; b++) {
+      // U1 = HMAC(pass, salt || INT(b)) (message de longueur variable)
+      const m = new Uint8Array(salt.length + 4); m.set(salt); m[salt.length] = b >>> 24; m[salt.length+1] = (b >>> 16) & 255; m[salt.length+2] = (b >>> 8) & 255; m[salt.length+3] = b & 255;
+      const inner = (() => {
+        const full = new Uint8Array(64 + m.length); full.set(ip); full.set(m, 64); return sha256(full);
+      })();
+      const full2 = new Uint8Array(64 + 32); full2.set(op); full2.set(inner, 64);
+      let u = sha256(full2);
+      const t = Int32Array.from({ length: 8 }, (_, i) => (u[4*i] << 24) | (u[4*i+1] << 16) | (u[4*i+2] << 8) | u[4*i+3]);
+      for(let it = 1; it < iter; it++) {
+        hmacOnce(u);
+        for(let i = 0; i < 8; i++) { t[i] ^= st[i]; u[4*i] = st[i] >>> 24; u[4*i+1] = (st[i] >>> 16) & 255; u[4*i+2] = (st[i] >>> 8) & 255; u[4*i+3] = st[i] & 255; }
+      }
+      for(let i = 0; i < 8; i++) { const o = (b-1)*32 + 4*i; out[o] = t[i] >>> 24; out[o+1] = (t[i] >>> 16) & 255; out[o+2] = (t[i] >>> 8) & 255; out[o+3] = t[i] & 255; }
+    }
+    return out.slice(0, len);
+  }
+  // ── AES (chiffrement de bloc) ──
+  const SBOX = new Uint8Array(256);
+  (function() {
+    let p = 1, q = 1;
+    do {
+      p = p ^ ((p << 1) & 255) ^ (p & 0x80 ? 0x1b : 0);
+      q ^= q << 1; q ^= q << 2; q ^= q << 4; q &= 255; if(q & 0x80) q ^= 0x09;
+      const x = q ^ ((q << 1) | (q >> 7)) ^ ((q << 2) | (q >> 6)) ^ ((q << 3) | (q >> 5)) ^ ((q << 4) | (q >> 4));
+      SBOX[p] = (x ^ 0x63) & 255;
+    } while(p !== 1);
+    SBOX[0] = 0x63;
+  })();
+  function expandKey(key) {
+    const nk = key.length / 4, nr = nk + 6, w = new Uint8Array(16 * (nr + 1));
+    w.set(key);
+    let rcon = 1;
+    for(let i = nk; i < 4 * (nr + 1); i++) {
+      let t0 = w[4*(i-1)], t1 = w[4*(i-1)+1], t2 = w[4*(i-1)+2], t3 = w[4*(i-1)+3];
+      if(i % nk === 0) {
+        const tt = t0; t0 = SBOX[t1] ^ rcon; t1 = SBOX[t2]; t2 = SBOX[t3]; t3 = SBOX[tt];
+        rcon = ((rcon << 1) ^ (rcon & 0x80 ? 0x11b : 0)) & 255;
+      } else if(nk > 6 && i % nk === 4) { t0 = SBOX[t0]; t1 = SBOX[t1]; t2 = SBOX[t2]; t3 = SBOX[t3]; }
+      w[4*i] = w[4*(i-nk)] ^ t0; w[4*i+1] = w[4*(i-nk)+1] ^ t1; w[4*i+2] = w[4*(i-nk)+2] ^ t2; w[4*i+3] = w[4*(i-nk)+3] ^ t3;
+    }
+    return { w, nr };
+  }
+  const xt = (a) => ((a << 1) ^ (a & 0x80 ? 0x11b : 0)) & 255;
+  function encBlock(ks, inp, out) {
+    const s = new Uint8Array(16), { w, nr } = ks;
+    for(let i = 0; i < 16; i++) s[i] = inp[i] ^ w[i];
+    const t = new Uint8Array(16);
+    for(let r = 1; r <= nr; r++) {
+      // SubBytes + ShiftRows
+      for(let c = 0; c < 4; c++) for(let rw = 0; rw < 4; rw++) t[4*c + rw] = SBOX[s[4*((c + rw) & 3) + rw]];
+      if(r < nr) {
+        for(let c = 0; c < 4; c++) {
+          const a0 = t[4*c], a1 = t[4*c+1], a2 = t[4*c+2], a3 = t[4*c+3];
+          s[4*c]   = xt(a0) ^ (xt(a1) ^ a1) ^ a2 ^ a3;
+          s[4*c+1] = a0 ^ xt(a1) ^ (xt(a2) ^ a2) ^ a3;
+          s[4*c+2] = a0 ^ a1 ^ xt(a2) ^ (xt(a3) ^ a3);
+          s[4*c+3] = (xt(a0) ^ a0) ^ a1 ^ a2 ^ xt(a3);
+        }
+      } else s.set(t);
+      for(let i = 0; i < 16; i++) s[i] ^= w[16*r + i];
+    }
+    out.set(s);
+  }
+  // ── GHASH / GCM ──
+  function gmul(x, y) { // x,y : Uint32Array(4) big-endian words ; renvoie x·y dans GF(2^128)
+    const z = new Uint32Array(4), v = Uint32Array.from(y);
+    for(let i = 0; i < 128; i++) {
+      if((x[i >> 5] >>> (31 - (i & 31))) & 1) { z[0] ^= v[0]; z[1] ^= v[1]; z[2] ^= v[2]; z[3] ^= v[3]; }
+      const lsb = v[3] & 1;
+      v[3] = (v[3] >>> 1) | (v[2] << 31); v[2] = (v[2] >>> 1) | (v[1] << 31); v[1] = (v[1] >>> 1) | (v[0] << 31); v[0] = v[0] >>> 1;
+      if(lsb) v[0] ^= 0xe1000000;
+    }
+    return z;
+  }
+  const be32 = (a, o) => ((a[o] << 24) | (a[o+1] << 16) | (a[o+2] << 8) | a[o+3]) >>> 0;
+  function ghash(H, aad, ct) {
+    let y = new Uint32Array(4);
+    const feed = (data) => {
+      for(let o = 0; o < data.length; o += 16) {
+        const blk = new Uint8Array(16); blk.set(data.subarray(o, Math.min(o + 16, data.length)));
+        for(let i = 0; i < 4; i++) y[i] ^= be32(blk, 4*i);
+        y = gmul(y, H);
+      }
+    };
+    feed(aad); feed(ct);
+    const lenBlk = new Uint8Array(16);
+    const abits = aad.length * 8, cbits = ct.length * 8;
+    lenBlk[4] = (abits >>> 24) & 255; lenBlk[5] = (abits >>> 16) & 255; lenBlk[6] = (abits >>> 8) & 255; lenBlk[7] = abits & 255;
+    lenBlk[8] = Math.floor(ct.length / 0x20000000) & 255; lenBlk[12] = (cbits >>> 24) & 255; lenBlk[13] = (cbits >>> 16) & 255; lenBlk[14] = (cbits >>> 8) & 255; lenBlk[15] = cbits & 255;
+    for(let i = 0; i < 4; i++) y[i] ^= be32(lenBlk, 4*i);
+    y = gmul(y, H);
+    const out = new Uint8Array(16);
+    for(let i = 0; i < 4; i++) { out[4*i] = y[i] >>> 24; out[4*i+1] = (y[i] >>> 16) & 255; out[4*i+2] = (y[i] >>> 8) & 255; out[4*i+3] = y[i] & 255; }
+    return out;
+  }
+  function gcmCore(key, iv, data, encrypt, tagIn) {
+    const ks = expandKey(key), zero = new Uint8Array(16), Hb = new Uint8Array(16);
+    encBlock(ks, zero, Hb);
+    const H = new Uint32Array(4); for(let i = 0; i < 4; i++) H[i] = be32(Hb, 4*i);
+    const j0 = new Uint8Array(16); j0.set(iv); j0[15] = 1;
+    const ctr = Uint8Array.from(j0), ks_blk = new Uint8Array(16), out = new Uint8Array(data.length);
+    const inc = () => { for(let i = 15; i >= 12; i--) { ctr[i] = (ctr[i] + 1) & 255; if(ctr[i]) break; } };
+    for(let o = 0; o < data.length; o += 16) {
+      inc(); encBlock(ks, ctr, ks_blk);
+      const n = Math.min(16, data.length - o);
+      for(let i = 0; i < n; i++) out[o + i] = data[o + i] ^ ks_blk[i];
+    }
+    const ct = encrypt ? out : data;
+    const gh = ghash(H, new Uint8Array(0), ct), ej0 = new Uint8Array(16); encBlock(ks, j0, ej0);
+    const tag = new Uint8Array(16); for(let i = 0; i < 16; i++) tag[i] = gh[i] ^ ej0[i];
+    if(encrypt) return { out, tag };
+    for(let i = 0; i < 16; i++) if(tag[i] !== tagIn[i]) throw new Error('Authentification AES-GCM échouée');
+    return { out };
+  }
+  // ── RSA PKCS#1 v1.5 SHA-256 (vérification et signature) ──
+  const b64uBytes = (s) => { const p = s.replace(/-/g, '+').replace(/_/g, '/'); const b = atob(p + '='.repeat((4 - p.length % 4) % 4)); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+  const toBig = (bytes) => { let h = ''; for(const b of bytes) h += b.toString(16).padStart(2, '0'); return BigInt('0x' + (h || '0')); };
+  const modpow = (b, e, m) => { let r = 1n; b %= m; while(e > 0n) { if(e & 1n) r = (r * b) % m; e >>= 1n; b = (b * b) % m; } return r; };
+  const DI = Uint8Array.from([0x30,0x31,0x30,0x0d,0x06,0x09,0x60,0x86,0x48,0x01,0x65,0x03,0x04,0x02,0x01,0x05,0x00,0x04,0x20]);
+  function emsa(hash, k) {
+    const em = new Uint8Array(k); em[1] = 1;
+    const tl = DI.length + 32, ps = k - tl - 3; em.fill(0xff, 2, 2 + ps); em[2 + ps] = 0; em.set(DI, 3 + ps); em.set(hash, 3 + ps + DI.length);
+    return em;
+  }
+  function bigToBytes(x, k) { let h = x.toString(16); if(h.length % 2) h = '0' + h; const out = new Uint8Array(k); for(let i = 0; i < h.length / 2; i++) out[k - 1 - i] = parseInt(h.substr(h.length - 2 * (i + 1), 2), 16); return out; }
+  function rsaVerify(jwk, data, sig) {
+    const n = toBig(b64uBytes(jwk.n)), e = toBig(b64uBytes(jwk.e)), k = b64uBytes(jwk.n).length;
+    if(sig.length !== k) return false;
+    const m = modpow(toBig(sig), e, n);
+    const em = bigToBytes(m, k), exp = emsa(sha256(data), k);
+    let d = 0; for(let i = 0; i < k; i++) d |= em[i] ^ exp[i];
+    return d === 0;
+  }
+  function rsaSign(jwk, data) {
+    const n = toBig(b64uBytes(jwk.n)), d = toBig(b64uBytes(jwk.d)), k = b64uBytes(jwk.n).length;
+    const em = emsa(sha256(data), k);
+    return bigToBytes(modpow(toBig(em), d, n), k);
+  }
+  const hasSubtle = () => (typeof crypto !== 'undefined' && crypto.subtle && typeof crypto.subtle.importKey === 'function');
+  const enc = new TextEncoder();
+  return {
+    forceJs: false,
+    sha256,
+    useSubtle() { return !this.forceJs && hasSubtle(); },
+    async pbkdf2(pass, salt, iter, len) {
+      const p = typeof pass === 'string' ? enc.encode(pass) : pass;
+      if(this.useSubtle()) {
+        const km = await crypto.subtle.importKey('raw', p, 'PBKDF2', false, ['deriveBits']);
+        return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, km, len * 8));
+      }
+      await new Promise(r => setTimeout(r, 0));
+      return pbkdf2Sync(p, salt, iter, len);
+    },
+    async aesGcmEncrypt(keyBytes, iv, data) {
+      if(this.useSubtle()) {
+        const key = await crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt']);
+        return new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data));
+      }
+      const r = gcmCore(keyBytes, iv, data, true); const o = new Uint8Array(r.out.length + 16); o.set(r.out); o.set(r.tag, r.out.length); return o;
+    },
+    async aesGcmDecrypt(keyBytes, iv, data) {
+      if(this.useSubtle()) {
+        const key = await crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['decrypt']);
+        return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data));
+      }
+      if(data.length < 16) throw new Error('Données invalides');
+      return gcmCore(keyBytes, iv, data.subarray(0, data.length - 16), false, data.subarray(data.length - 16)).out;
+    },
+    async rsaVerify(jwk, data, sig) {
+      if(this.useSubtle()) {
+        const key = await crypto.subtle.importKey('jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+        return crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, sig, data);
+      }
+      await new Promise(r => setTimeout(r, 0));
+      return rsaVerify(jwk, data, sig);
+    },
+    async rsaSign(jwk, data) {
+      if(this.useSubtle()) {
+        const key = await crypto.subtle.importKey('jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
+        return new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, data));
+      }
+      await new Promise(r => setTimeout(r, 0));
+      return rsaSign(jwk, data);
+    }
+  };
+})();
+
+const LS='gsw_lic_priv', LC='gsw_gen_cfg';
+let priv=null, curReq=null, curPay=null;
+const el=i=>document.getElementById(i);
+function b64u(buf){let s='';const a=new Uint8Array(buf);for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+function b64uStr(s){return b64u(new TextEncoder().encode(s))}
+function decObj(s){const p=s.replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(decodeURIComponent(escape(atob(p+'='.repeat((4-p.length%4)%4)))))}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function rnd(n,alpha){const a=new Uint8Array(n);crypto.getRandomValues(a);return Array.from(a).map(b=>alpha[b%alpha.length]).join('')}
+const CODE_ALPHA='ABCDEFGHJKLMNPQRSTUVWXYZ23456789', PWD_ALPHA='abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function slug(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,14)||'client'}
+function cp(id){const t=el(id),v=t.value;const fb=()=>{try{t.focus();t.select();t.setSelectionRange(0,v.length);document.execCommand('copy');alert('Copié')}catch(e){alert('Sélectionnez le texte puis copiez-le')}};try{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(v).then(()=>alert('Copié')).catch(fb);else fb()}catch(e){fb()}}
+
+function init(){
+  el('secure').innerHTML=CX.useSubtle()?'✅ Chiffrement du navigateur disponible.':'ℹ️ Mode de secours actif : la signature et les paquets fonctionnent, mais la création des clés se fait dans Chrome.';
+  try{const p=localStorage.getItem(LS);if(p)priv=JSON.parse(p)}catch(e){}
+  try{const c=JSON.parse(localStorage.getItem(LC)||'{}');Object.keys(c).forEach(k=>{if(el(k))el(k).value=c[k]})}catch(e){}
+  showState();
+}
+function showState(){el('keyState').innerHTML=priv?'<div class="ok">✅ Une clé privée est chargée dans ce navigateur.</div>':'<div class="warn">Aucune clé chargée.</div>'}
+function saveCfg(){const c={};document.querySelectorAll('[id^=c_]').forEach(i=>c[i.id]=i.value);localStorage.setItem(LC,JSON.stringify(c));alert('Enregistré')}
+function cfg(){const g=i=>el(i).value.trim();return{
+  trial:parseInt(g('c_trial'))||0,valid:parseInt(g('c_valid'))||15,cur:g('c_cur')||'FCFA',
+  plans:[{id:'monthly',label:'1 mois',days:30,price:parseInt(g('c_p_monthly'))||0},{id:'semi',label:'6 mois',days:180,price:parseInt(g('c_p_semi'))||0},{id:'yearly',label:'12 mois',days:365,price:parseInt(g('c_p_yearly'))||0}],
+  payments:{moov:{number:g('c_moov_n'),name:g('c_moov_h')},orange:{number:g('c_orange_n'),name:g('c_orange_h')},wave:{number:g('c_wave_n'),name:g('c_wave_h')},bank:{bank:g('c_bank'),holder:g('c_bank_h'),iban:g('c_iban')}}}}
+
+async function genKeys(){
+  if(!CX.useSubtle()){alert('La création des clés doit se faire dans le navigateur Chrome (pas dans l’application). Créez-les là-bas, puis chargez la clé privée ici avec « Charger depuis le texte ».');return}
+  if(priv&&!confirm('Des clés existent déjà. En créer de nouvelles invalidera TOUTES les licences déjà émises. Continuer ?'))return;
+  const kp=await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify']);
+  priv=await crypto.subtle.exportKey('jwk',kp.privateKey);priv.__pub=await crypto.subtle.exportKey('jwk',kp.publicKey);
+  localStorage.setItem(LS,JSON.stringify(priv));showState();alert('Clés créées. Sauvegardez maintenant la clé privée dans un fichier (bouton orange).');
+}
+function downloadPriv(){if(!priv)return alert('Créez d’abord vos clés');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(priv)],{type:'application/json'}));a.download='gsw_cle_privee_SECRET.json';a.click()}
+function loadPriv(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{try{const j=JSON.parse(e.target.result);if(!j.d||!j.__pub)throw 0;priv=j;localStorage.setItem(LS,JSON.stringify(j));showState();alert('Clé chargée')}catch(x){alert('Fichier de clé invalide')}};r.readAsText(f)}
+function showPriv(){if(!priv)return alert('Aucune clé chargée');el('privTxt').value=JSON.stringify(priv)}
+function loadPrivText(){try{const j=JSON.parse(el('privTxt').value.trim());if(!j.d||!j.__pub)throw 0;priv=j;localStorage.setItem(LS,JSON.stringify(j));showState();alert('Clé chargée')}catch(x){alert('Texte de clé invalide')}}
+function pubJwk(){const p=priv.__pub;return{kty:p.kty,n:p.n,e:p.e,alg:'RS256',ext:true}}
+function patchApp(){
+  if(!priv)return alert('Créez ou chargez d’abord vos clés');
+  const f=el('appFile').files[0];if(!f)return alert('Choisissez GSW22.html');
+  const r=new FileReader();
+  r.onload=e=>{let t=e.target.result;const re=/const LICENSE_PUBLIC_KEY_JWK = [^;]*;/;
+    if(!re.test(t)){el('patchMsg').innerHTML='<div class="warn">Ce fichier ne contient pas la zone de licence (utilisez GSW22.html).</div>';return}
+    t=t.replace(re,()=>'const LICENSE_PUBLIC_KEY_JWK = '+JSON.stringify(pubJwk())+';');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/html'}));a.download='GSW_avec_licence.html';a.click();
+    el('patchMsg').innerHTML='<div class="ok">✅ « GSW_avec_licence.html » créé : c’est la version à distribuer à vos clients.</div>'};
+  r.readAsText(f);
+}
+async function signJwt(payload){
+  const jwk=(({__pub,...k})=>({...k,alg:'RS256',ext:true}))(priv);
+  const head=b64uStr(JSON.stringify({alg:'RS256',typ:'JWT'})),body=b64uStr(JSON.stringify(payload));
+  const sig=await CX.rsaSign(jwk,new TextEncoder().encode(head+'.'+body));
+  return head+'.'+body+'.'+b64u(sig);
+}
+async function seal(code,pwd,obj){
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)),iter=150000;
+  const key=await CX.pbkdf2(String(code).trim().toUpperCase()+'|'+pwd,salt,iter,32);
+  const ct=await CX.aesGcmEncrypt(key,iv,new TextEncoder().encode(JSON.stringify(obj)));
+  return{salt:b64u(salt),iv:b64u(iv),data:b64u(ct),iter};
+}
+function readReq(){
+  try{
+    let t=el('reqIn').value.trim();if(t.includes('GSWREQ.'))t=t.slice(t.indexOf('GSWREQ.'));
+    if(!t.startsWith('GSWREQ.'))throw 0;
+    curReq=decObj(t.slice(7).split(/\s/)[0]);
+    const r=curReq,d=r.device||{};
+    el('reqView').innerHTML='<div class="info"><strong>'+esc(r.business)+'</strong><br>Nom : '+esc(r.name)+'<br>E-mail : '+esc(r.email)+'<br>Téléphone : '+esc(r.phone)+'<br>Appareil : '+esc(d.platform)+' — '+esc(d.screen)+' — '+esc(d.tz)+'<br><span class="small">'+esc(d.ua)+'</span><br>Application : v'+esc(r.app_version)+' — Demande du '+esc(r.created_at)+'<br><span class="small">ID demande : '+esc(r.request_id)+' — ID appareil : '+esc(r.device_id)+'</span></div>';
+    el('reqForm').style.display='block';regen();
+    el('a_user').value=slug(r.business)+'_admin';el('a_name').value=r.name||'';el('a_tenant').value=slug(r.business).toUpperCase()+'-'+rnd(4,CODE_ALPHA);
+  }catch(e){curReq=null;el('reqView').innerHTML='<div class="warn">Code de demande invalide.</div>';el('reqForm').style.display='none'}
+}
+function regen(){el('a_code').value=rnd(8,CODE_ALPHA);el('a_pwd').value=rnd(8,PWD_ALPHA);el('a_apwd').value=rnd(10,PWD_ALPHA)}
+async function makePackage(){
+  if(!priv)return alert('Créez ou chargez d’abord vos clés');
+  if(!curReq)return alert('Lisez d’abord une demande');
+  const code=el('a_code').value.trim(),pwd=el('a_pwd').value,user=el('a_user').value.trim(),name=el('a_name').value.trim(),apwd=el('a_apwd').value;
+  if(!code||!pwd||!user||!apwd)return alert('Tous les champs sont obligatoires');
+  const c=cfg(),now=Math.floor(Date.now()/1000);
+  const sealed=await seal(code,pwd,{admin:{username:user,name:name||user,password:apwd}});
+  const payload={typ:'activation',request_id:curReq.request_id,device_id:curReq.device_id,tenant_id:el('a_tenant').value.trim(),issued_at:now,expires_at:now+c.valid*86400,business:curReq.business,trial_days:c.trial,currency:c.cur,plans:c.plans,payments:c.payments,sealed};
+  el('pkgOut').value=await signJwt(payload);
+  el('msgOut').value='Activation GSW — '+curReq.business+'\nCode d’activation : '+code.toUpperCase()+'\nMot de passe d’activation : '+pwd+'\nCompte administrateur\nIdentifiant : '+user+'\nMot de passe : '+apwd;
+}
+function readPay(){
+  try{
+    let t=el('payIn').value.trim();if(t.includes('GSWPAY.'))t=t.slice(t.indexOf('GSWPAY.'));
+    if(!t.startsWith('GSWPAY.'))throw 0;
+    curPay=decObj(t.slice(7).split(/\s/)[0]);const p=curPay;
+    el('payView').innerHTML='<div class="info"><strong>'+esc(p.plan_label)+'</strong> — '+esc(p.amount)+'<br>Moyen : '+esc(p.method)+'<br>Payeur : '+esc(p.payer)+'<br>Référence : <strong>'+esc(p.reference)+'</strong><br><span class="small">Client : '+esc(p.tenant_id)+' — Paiement : '+esc(p.pay_id)+' — '+esc(p.created_at)+'</span></div>';
+    el('payForm').style.display='block';
+  }catch(e){curPay=null;el('payView').innerHTML='<div class="warn">Preuve de paiement invalide.</div>';el('payForm').style.display='none'}
+}
+async function approvePay(){
+  if(!priv)return alert('Créez ou chargez d’abord vos clés');
+  if(!curPay)return;
+  const now=Math.floor(Date.now()/1000);
+  el('payTok').value=await signJwt({tenant_id:curPay.tenant_id||'-',device_id:curPay.device_id,plan:curPay.plan,issued_at:now,expires_at:now+(curPay.days||30)*86400,grace_days:3,max_offline_days:30});
+}
+async function makeToken(){
+  if(!priv)return alert('Créez ou chargez d’abord vos clés');
+  const dev=el('dev').value.trim(),tenant=el('tenant').value.trim();
+  if(!dev||!tenant)return alert('Identifiant appareil et client obligatoires');
+  const now=Math.floor(Date.now()/1000),days=parseInt(el('days').value)||30;
+  el('tokenOut').value=await signJwt({tenant_id:tenant,device_id:dev,plan:el('plan').value,issued_at:now,expires_at:now+days*86400,grace_days:el('plan').value==='trial'?0:3,max_offline_days:30});
+}
+init();
+</script></body></html>
